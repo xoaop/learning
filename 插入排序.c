@@ -1,4 +1,4 @@
-void charupaixu(int *nums, int numsSize) 
+void charupaixu1(int *nums, int numsSize) 
 {
 	for (int i = 1; i < numsSize; i++) 
         {
