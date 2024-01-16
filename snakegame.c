@@ -6,9 +6,12 @@
 #include <stdlib.h>
 #include <windows.h>
 
-const int X=15;
-const int Y=15;
+const int X=20;
+const int Y=20;
 char Map[Y+2][X+2];
+
+int counterdirection[81];
+
 
 typedef struct snakebody
 {
@@ -31,6 +34,17 @@ typedef struct
     int y;
 }apple;
 
+
+
+void HideCursor()
+{
+	HANDLE fd = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_CURSOR_INFO cinfo;
+	cinfo.bVisible = 0;
+	cinfo.dwSize = 1;
+	SetConsoleCursorInfo(fd, &cinfo);
+}
+
 void setdirection(int direction,snake* snake)
 {
     snake->direction=direction;
@@ -52,15 +66,17 @@ void addtohead(int x,int y,snake* snake)
 
 void deletetail(snake* snake)
 {   
-    snakebody* tmp=snake->snakehead;
+    snakebody* current=snake->snakehead;
+    snakebody* prev=NULL;
 
-    while(tmp->behind->behind!=NULL)
+    while(current->behind!=NULL)
     {
-        tmp=tmp->behind;
+        prev=current;
+        current=current->behind;
     }
 
-    free(tmp->behind);
-    tmp->behind=NULL;
+    free(current);
+    prev->behind=NULL;
 
     snake->size--;
 
@@ -79,15 +95,18 @@ bool eatapple(apple* apple,snake* snake)
     }
 }
 
-void controldirection(snake* snake)
-{
+void controldirection(snake* snake,int lastdirection)
+{   
+    int ch1=0;
+    int ch2=0;
     if(_kbhit())
-    {
-        int ch=_getch();
+    {   
+        ch1=_getch();
+        ch2=_getch();
 
-        if(ch!=snake->direction)
+        if(ch1==224&&ch2!=counterdirection[lastdirection])
         {
-            snake->direction=ch;
+            snake->direction=ch2;
         }
 
     }
@@ -98,18 +117,21 @@ int generateRandomNumber(int min, int max)
     return min + rand() % (max - min + 1);
 }
 
+
 void gamerun(snake* snake ,apple* apple)
 {   
     bool death=false;
+    int lastdirection=72;
 
     while(1)
     {   
-        system("cls");
+        Sleep(150);
+        controldirection(snake,lastdirection);
         
-        controldirection(snake);
 
-        Sleep(1000);
+        system("cls");
 
+        lastdirection=snake->direction;
         switch(snake->direction)
             {
                 case 72:
@@ -148,21 +170,24 @@ void gamerun(snake* snake ,apple* apple)
 
             while(tmp!=NULL)
             {
-                if((snake->snakehead->x==tmp->x&&snake->snakehead->y==tmp->y)||(tmp->x==0||tmp->y==0||tmp->x==Y+1||tmp->y==X+1))
+                if((snake->snakehead->x==tmp->x&&snake->snakehead->y==tmp->y)||(snake->snakehead->x==0||snake->snakehead->y==0||snake->snakehead->x==X+1||snake->snakehead->y==Y+1))
                 {
                     death=true;
+                    break;
                 }
                 tmp=tmp->behind;
             }
 
-            if(death) 
-                break;
+            
 
             for(int i=0;i<=Y+1;i++)
             {
                 for(int j=0;j<=X+1;j++)
-                {
-                    Map[i][j]=' ';
+                {   
+                    if(i==0||j==0||i==Y+1||j==X+1)
+                        Map[i][j]='@';
+                    else
+                        Map[i][j]=' ';
                 }
             }
 
@@ -179,21 +204,35 @@ void gamerun(snake* snake ,apple* apple)
 
             Map[apple->y][apple->x]='*';
 
+            char buffer[100000];
+            int cnt=0;
+
             for(int i=0;i<Y+2;i++)
             {
                 for(int j=0;j<X+2;j++)
                 {
-                    printf("%c",Map[i][j]);
+                    buffer[cnt++]=Map[i][j];
                 }
-                printf("\n");
+                buffer[cnt++]='\n';
             }
+            buffer[cnt]='\0';
+            printf("%s",buffer);
+            printf("长度:%d\n",snake->size);
+
+            if(death) 
+                break;
     }
 
 
 }
 
 void init(snake* snake,apple* apple)
-{
+{   
+    counterdirection[72]=80;
+    counterdirection[80]=72;
+    counterdirection[75]=77;
+    counterdirection[77]=75;
+
     snake->direction=72;
     snake->size=3;
 
@@ -222,7 +261,18 @@ int main()
 
     srand(time(NULL));
 
+    HideCursor();
     init(s1,apple1);
+
+    printf("方向键控制,按回车开始");
+
+    getchar();
+
     gamerun(s1,apple1);
+
+    printf("死了\n");
+
+    system("pause");
+
 
 }
